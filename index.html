@@ -21,6 +21,11 @@
         margin: 0;
         padding: 0;
     }
+    ul {
+        margin: 0;
+        list-style-type: none;
+        padding-left: 0;
+    }
     @font-face {
         font-family: ethans-handwriting;
         src: url("./EthansHandwriting.ttf") format("truetype");
@@ -108,16 +113,22 @@
         top: 0;
         width: 28.75%;
     }
-    #name {
+    #name, #year {
         position: absolute;
-        top: 54%;
         left: 0;
         width: 71.25%;
         font-family: ethans-handwriting, sans-serif;
-        font-size: 48pt;
         text-align: center;
         font-weight: bold;
         line-height: 0.7em;
+    }
+    #name {
+        top: 54%;
+        font-size: 48pt;
+    }
+    #year {
+        top: 3%;
+        font-size: 25pt;
     }
     #logo {
         position: absolute;
@@ -138,6 +149,9 @@
         #name {
             font-size: 28pt;
         }
+        #year {
+            font-size: 15pt;
+        }
         #graduation {
             font-size: 32pt !important;
         }
@@ -147,6 +161,7 @@
     }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/barcodes/JsBarcode.codabar.min.js"></script>
     <script>
         function addImg(url, elem=undefined) {
             if (elem && elem.innerText === '-') {
@@ -167,7 +182,17 @@
         }
         function setId(id) {
             document.getElementById('graduation').innerText = id.substring(1,3);
-            document.getElementById('barcode').src = `http://www.keepautomation.com/online_barcode_generator/linear.aspx?TYPE=0&DATA=23111${id}000&CODABAR-START-CHAR=A%2cA&UOM=0&X=4&Y=90&ROTATE=0&RESOLUTION=72&FORMAT=gif&LEFT-MARGIN=0&RIGHT-MARGIN=0&SHOW-TEXT=false&TEXT-FONT=Arial%7c9%7cRegular`;
+            JsBarcode("#barcode", "23111" + id + "000", {
+                width: 2.8,
+                height: 1000,
+                displayValue: false,
+            });
+        }
+        function changeColor(ev) {
+            const {h, s, l} = hexToHSL(ev.target.value);
+            document.getElementById('bg').style.filter = `saturate(${(s+4)/100}) brightness(${(l+50)/100}) hue-rotate(${h-57}deg)`;
+            // Img default hsl: 57°, 96%, 50%
+            console.log("hsl", h, s, l);
         }
         
         // Adapted from FridgeOS, which is in turn adapted from https://www.w3schools.com/howto/howto_js_draggable.asp
@@ -209,40 +234,91 @@
             document.onpointermove = null;
           }
         }
+        
+        // Adapted from https://stackoverflow.com/a/62390801
+        function hexToHSL(hex) {
+            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+
+            var r = parseInt(result[1], 16);
+            var g = parseInt(result[2], 16);
+            var b = parseInt(result[3], 16);
+
+            r /= 255, g /= 255, b /= 255;
+            var max = Math.max(r, g, b), min = Math.min(r, g, b);
+            var h, s, l = (max + min) / 2;
+
+            if(max == min){
+                h = s = 0; // achromatic
+            } else {
+                var d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch(max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                
+                h /= 6;
+            }
+
+            s = s*100;
+            s = Math.round(s);
+            l = l*100;
+            l = Math.round(l);
+            h = Math.round(360*h);
+
+            return {h, s, l};
+        }
     </script>
   </head>
   <body>
   <div id="center">
   <div id="id">
-    <img src="./base.png" alt="base" style="width: 100%; height: 100%; position: absolute; left: 0; top: 0; object-fit: cover;" draggable="false" />
+    <img src="./base.png" alt="base" id="bg" style="width: 100%; height: 100%; position: absolute; left: 0; top: 0; object-fit: cover;" draggable="false" />
     <img src="./tommy.jpg" alt="id picture" id="profile" draggable="false" />
+    <div id="year">2000-2000</div>
     <div id="stickers">
         <div style="flex-grow: 99;" id="spacer"></div>
         <div id="graduation" style="background-color: #343260; color: #d4d6cc; text-align: center; font-weight: bold; font-size: 48pt; font-family: tahoma; line-height: 1em;">00</div>
     </div>
     <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 9.06%; background-color: white;"></div>
-    <img id="barcode" alt="barcode" draggable="false" onerror="this.style.display='none'">
+    <canvas id="barcode"></canvas>
     <div id="name" contenteditable="true" spellcheck="false">Tommy Titan</div>
-    <img src="./imsa-old.png" alt="IMSA logo" id="logo" />
+    <img src="./imsa-new.png" alt="IMSA logo" id="logo" />
   </div>
   <div id="settings" style="width: 380px; padding: 5px;">
     <label>Your ID number: <input placeholder="000000" onchange="setId(event.target.value)"></label>
     <br/>
-    <input type="file" onchange="document.getElementById('profile').src = window.URL.createObjectURL(event.target.files[0]);" />
-    width: <input type="number" min=0 max=100 value=60	 oninput="document.getElementById('profile').style.width = (event.target.value / 100) * 71.25 + '%'" />
-    <br />
-    <div id="sidebar">
-        <label><button onclick="addImg('./music.png', this)">+</button>Music</label>
-        <label><button onclick="addImg('./robotics.png', this)">+</button>Robotics</label>
-        <label><button onclick="addImg('./gimp.png', this)">+</button>GIMP</label>
-        <label><button onclick="addImg('./heart.png', this)">+</button>Pride heart</label>
-        <label><button onclick="addImg('./acronym.png', this)">+</button>Acronym</label>
-        <label><button onclick="addImg('./titans.png', this)">+</button>Sports</label>
-        <label><button onclick="addImg('./math.png', this)">+</button>Mu Alpha Theta</label>
-        <label>Custom: <input type="file" onchange="addImg(window.URL.createObjectURL(event.target.files[0]))"></label>
-    </div>
-    <label><input type="checkbox" onclick="document.getElementById('logo').src = event.target.checked ? './imsa-old.png' : './imsa-new.png'" checked>Old IMSA logo</label>
-    <p>Your ID photo is draggable, along with the sidebar. Edit your name by clicking on it. <button onclick="print()">Print!</button></p>
+    <div>Edit your name by clicking on it.</div>
+    <br/>
+    <fieldset>
+        <legend>Photo</legend>
+        <ul>
+        <li><input type="file" onchange="document.getElementById('profile').src = window.URL.createObjectURL(event.target.files[0]);" /></li>
+        <li>Width: <input type="number" min=0 max=100 value=60	 oninput="document.getElementById('profile').style.width = (event.target.value / 100) * 71.25 + '%'" /></li>
+        </ul>
+        Your ID photo is draggable
+    </fieldset>
+    <br/>
+    <fieldset>
+    <legend>Stickers</legend>
+        <ul id="sidebar">
+            <li><label><button onclick="addImg('./music.png', this)">+</button> Music</label></li>
+            <li><label><button onclick="addImg('./robotics.png', this)">+</button> Robotics</label></li>
+            <li><label><button onclick="addImg('./gimp.png', this)">+</button> GIMP</label></li>
+            <li><label><button onclick="addImg('./heart.png', this)">+</button> Pride heart</label></li>
+            <li><label><button onclick="addImg('./acronym.png', this)">+</button> Acronym</label></li>
+            <li><label><button onclick="addImg('./titans.png', this)">+</button> Sports</label></li>
+            <li><label><button onclick="addImg('./math.png', this)">+</button> Mu Alpha Theta</label></li>
+            <li><label>Custom: <input type="file" onchange="addImg(window.URL.createObjectURL(event.target.files[0]))"></label>
+        </ul>
+        Your stickers can be rearranged by dragging
+    </fieldset>
+    <br/>
+    <label><input type="checkbox" onclick="document.getElementById('logo').src = event.target.checked ? './imsa-old.png' : './imsa-new.png'">Old IMSA logo</label>
+    <br/>
+    <label><input type="color" value="#faee06" oninput="changeColor(event)"> Background color</label>
+    <p><button onclick="print()">Print!</button></p>
   </div>
   </div>
   <div style="clear: both; break-after: page;"></div>
@@ -266,6 +342,8 @@
   <script>
     setId("000000");
     makeDraggable(document.getElementById("profile"));
+    const thisYear = new Date().getFullYear();
+    document.getElementById("year").innerText = thisYear + "-" + (thisYear + 1);
     new Sortable(document.getElementById("stickers"), {
         animation: 150,
         ghostClass: "sortable-ghost", //somehow find a way to not show icon without being weird
